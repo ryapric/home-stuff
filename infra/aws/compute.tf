@@ -1,4 +1,4 @@
-# TODO: add support for non-Spot instances
+# TODO: add support for non-Spot instances?
 
 resource "aws_spot_instance_request" "main" {
   count = var.use_spot_instance ? 1 : 0
