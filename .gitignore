@@ -1,0 +1,6 @@
+.terraform.d/
+
+.terraform/
+*.auto.tfvars
+*backend*.tfvars
+*.tfstate*
