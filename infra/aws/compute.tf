@@ -12,7 +12,6 @@ resource "aws_spot_instance_request" "main" {
   instance_type          = var.instance_type
   key_name               = aws_key_pair.main.key_name
   subnet_id              = aws_subnet.public.id
-  user_data              = file("../config/scripts/main.sh")
   vpc_security_group_ids = [aws_security_group.main.id]
 
   # To prevent unexpected shutdown of t3-family Spot instances
@@ -39,39 +38,11 @@ resource "aws_spot_instance_request" "main" {
           Key=spot_request_id,Value=${self.id}
     EOF
   }
-
-  connection {
-    host        = self.public_ip
-    private_key = file(pathexpand(var.keypair_local_file))
-    user        = "admin"
-  }
-
-  # # Set up Salt tree for configmgmt
-  # provisioner "local-exec" {
-  #   command = <<-EOF
-  #     if [ '${var.app_name}' = 'configmgmt' ]; then
-  #       until scp -i ${pathexpand(var.keypair_local_file)} -o StrictHostKeyChecking=no -r ../../salt admin@${self.public_ip}:/tmp; do
-  #         printf 'Waiting for SSH connection...\n'
-  #         sleep 1
-  #       done
-  #     fi
-  #   EOF
-  # }
-
-  # provisioner "remote-exec" {
-  #   inline = [<<-EOF
-  #     export app_name='${var.app_name}'
-  #     export configmgmt_address='10.0.1.10'
-  #     [ -d /tmp/salt ] && sudo cp -r /tmp/salt/* /srv/
-  #     sudo -E bash /usr/local/baseimg/scripts/run/main.sh
-  #   EOF
-  #   ]
-  # }
 }
 
 resource "aws_key_pair" "main" {
   key_name   = var.name_tag
-  public_key = file(pathexpand(var.keypair_local_file))
+  public_key = file(pathexpand(var.keypair_local_file_pubkey))
 
   tags = merge(
     { Name = var.name_tag },

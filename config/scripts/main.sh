@@ -12,7 +12,6 @@ if [[ "${platform}" == 'vagrant' ]] ; then
   cp -r /vagrant/* /home/vagrant/
 else
   export user='admin'
-  cp -r /tmp/source/* /home/admin/
 fi
 
 chown -R "${user}":"${user}" /home/"${user}"
@@ -29,6 +28,9 @@ apt-get install -y \
   gnupg2 \
   htop \
   lsb-release \
+  make \
+  net-tools \
+  nmap \
   unzip \
   zip
 
@@ -41,8 +43,9 @@ apt-get install -y \
   docker-ce-cli \
   containerd.io \
   docker-compose-plugin
+usermod -aG docker "${user}"
 
 printf 'Bringing up services defined in docker-compose.yaml...\n'
-docker compose -f ../docker-compose.yaml up -d --wait
+docker compose -f /home/"${user}"/config/docker-compose.yaml up -d --wait
 
 printf 'All done!\n'

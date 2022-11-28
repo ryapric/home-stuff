@@ -12,8 +12,8 @@ variable "instance_type" {
   default     = "t3a.micro" # https://aws.amazon.com/ec2/instance-types/
 }
 
-variable "keypair_local_file" {
-  description = "Local path to the SSH pubkey to use as your EC2 keypair"
+variable "keypair_local_file_pubkey" {
+  description = "Local path to the SSH pubkey to use for your EC2 keypair"
   type        = string
   default     = "~/.ssh/id_rsa.pub"
 }
