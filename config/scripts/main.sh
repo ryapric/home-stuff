@@ -48,4 +48,11 @@ usermod -aG docker "${user}"
 printf 'Bringing up services defined in docker-compose.yaml...\n'
 docker compose -f /home/"${user}"/config/docker-compose.yaml up -d --wait
 
+# TODO: if you want to add adlists URLs, you can manually insert relevant
+# records into the gravity DB one at a time, like so (in v5+):
+#     docker exec pihole sqlite3 /etc/pihole/gravity.db "INSERT INTO adlist (address, enabled, comment) VALUES ('${adlist_url}', 1, '${adlist_comment}');"
+# which you can run in a loop where you 'docker exec' each one you want. You'll
+# also then need to update gravity once they're all added:
+#     docker exec pihole pihole -g
+
 printf 'All done!\n'
