@@ -12,7 +12,7 @@ services:
     - "80:80/tcp"
     environment:
       DNSMASQ_LISTENING: 'all' # to make publicly-accessible
-      PIHOLE_DNS_: '9.9.9.9;149.112.112.112' # Quad9 IPs
+      PIHOLE_DNS_: '9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9' # Quad9 IPs
       TZ: 'America/Chicago'
       WEBPASSWORD: 'admin'
     volumes:
