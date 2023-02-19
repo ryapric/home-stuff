@@ -34,6 +34,10 @@ apt-get install -y \
   unzip \
   zip
 
+printf 'Cloning repo locally for reference later if needed...\n'
+git clone https://github.com/ryapric/home-stuff.git ./upstream-repo
+chown -R "${user}":"${user}" /home/"${user}"
+
 printf 'Installing Docker...\n'
 curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/docker.gpg
 printf "deb https://download.docker.com/linux/debian %s stable\n" "$(lsb_release -cs)" > /etc/apt/sources.list.d/docker.list
