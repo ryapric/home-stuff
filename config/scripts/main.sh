@@ -34,9 +34,13 @@ apt-get install -y \
   unzip \
   zip
 
-printf 'Cloning repo locally for reference later if needed...\n'
-git clone https://github.com/ryapric/home-stuff.git ./upstream-repo
-chown -R "${user}":"${user}" /home/"${user}"
+if [[ ! -d ./upstream-repo ]] ; then
+  printf 'Cloning repo locally for reference later if needed...\n'
+  git clone https://github.com/ryapric/home-stuff.git ./upstream-repo
+  chown -R "${user}":"${user}" /home/"${user}"
+else
+  git -C ./upstream-repo pull
+fi
 
 printf 'Installing Docker...\n'
 curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/docker.gpg

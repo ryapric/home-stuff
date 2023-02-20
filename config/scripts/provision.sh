@@ -3,10 +3,10 @@ set -euo pipefail
 
 local_root="$(git rev-parse --show-toplevel)"
 
-if [[ -n "${HOMESTUFF_IP}" ]] ; then
-  host="admin@${HOMESTUFF_IP}"
+if [[ -n "${HOMESTUFF_IP:-}" ]] ; then
+  host="admin@${HOMESTUFF_IP:-NOT_SET}"
 else
-  host="admin@$(terraform -chdir "${local_root}"/infra output -raw static_ip)"
+  host="admin@$(terraform -chdir="${local_root}"/infra output -raw static_ip)"
 fi
 
 printf 'Uploading files to server...\n'
