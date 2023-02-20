@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-host="admin@$(terraform output -raw static_ip)"
+local_root="$(git rev-parse --show-toplevel)"
+
+if [[ -n "${HOMESTUFF_IP}" ]] ; then
+  host="admin@${HOMESTUFF_IP}"
+else
+  host="admin@$(terraform -chdir "${local_root}"/infra output -raw static_ip)"
+fi
 
 printf 'Uploading files to server...\n'
 scp \
   -o StrictHostKeyChecking=false \
   -r \
-  ../config \
+  "${local_root}"/config \
   "${host}":/home/admin/
 
 printf 'Running main config script...\n'

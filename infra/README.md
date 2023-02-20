@@ -1,7 +1,6 @@
 # Infracode
 
-This subdir controls infrastructure deployment, and provides a configuration
-wrapper, `provision.sh`.
+This subdir controls remote infrastructure deployment.
 
 You will first need a Terraform backend config vars file. Then you can run the
 init via:
@@ -10,8 +9,8 @@ init via:
 
 Post-init, you can run your standard plan-apply-destroy workflow as needed.
 
-Once the infrastructure is up, you can run `provision.sh` to grab the server's
-public IP address, copy some files from `../config/`, and run the main
+Once the infrastructure is up, you can run `../config/provision.sh` to grab the
+server's public IP address, copy some files from `../config/`, and run the main
 configuration script (`../config/scripts/main.sh`) on the remote host.
 
 ## NOTE
