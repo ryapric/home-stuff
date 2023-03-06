@@ -53,11 +53,19 @@ apt-get install -y \
   docker-compose-plugin
 usermod -aG docker "${user}"
 
+cfgdir="/home/${user}/config"
+
 printf 'Bringing up services defined in docker-compose.yaml...\n'
-cmpfile="/home/${user}/config/docker-compose.yaml"
+cmpfile="${cfgdir}/docker-compose.yaml"
 docker compose -f "${cmpfile}" pull
 docker compose -f "${cmpfile}" up -d --wait
 docker system prune --volumes --force
+
+printf 'Setting up systemd services...\n'
+cp -r "${cfgdir}"/services/* /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable regular-maintenance.timer
+systemctl start regular-maintenance.timer
 
 # TODO: if you want to add adlists URLs, you can manually insert relevant
 # records into the gravity DB one at a time, like so (in v5+):

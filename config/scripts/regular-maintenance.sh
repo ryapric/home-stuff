@@ -14,4 +14,4 @@ docker system prune --force
 docker volume ls --format '{{ .Name }}' | grep pihole | xargs -I{} docker volume rm {}
 docker compose up -d --wait
 mv /etc/resolv.conf{.bak,}
-docker exec -it pihole sh -c 'pihole -g'
+docker exec pihole sh -c 'pihole -g'
