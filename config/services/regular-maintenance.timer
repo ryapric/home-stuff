@@ -1,0 +1,13 @@
+[Unit]
+Description=Daily maintenance tasks for home-stuff services
+Requires=regular-maintenance.service
+
+[Timer]
+Unit=regular-maintenance.service
+OnBootSec=30s
+OnCalendar=Sun *-*-* 04:*:*
+AccuracySec=1s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
