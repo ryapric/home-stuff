@@ -3,13 +3,13 @@ set -euo pipefail
 
 export platform="${1:-}"
 if [[ -z "${platform}" ]] ; then
-  printf 'ERROR: platform name (vagrant|aws) not provided as script arg\n' > /dev/stderr
+  printf 'ERROR: platform name (vagrant|aws|any) not provided as script arg\n' > /dev/stderr
   exit 1
 fi
 
 if [[ "${platform}" == 'vagrant' ]] ; then
   export user='vagrant'
-  cp -r /vagrant/* /home/vagrant/
+  cp -r /tmp/home-stuff/* /home/vagrant/
 else
   export user='admin'
 fi
@@ -34,6 +34,7 @@ apt-get install -y \
   unzip \
   zip
 
+git config --global pull.rebase false
 if [[ ! -d ./upstream-repo ]] ; then
   printf 'Cloning repo locally for reference later if needed...\n'
   git clone https://github.com/ryapric/home-stuff.git ./upstream-repo
@@ -61,6 +62,9 @@ docker compose -f "${cmpfile}" pull
 docker compose -f "${cmpfile}" up -d --wait
 docker system prune --volumes --force
 
+printf 'Installing cockpit...\n'
+apt-get install -y cockpit
+
 printf 'Setting up systemd services...\n'
 cp -r "${cfgdir}"/services/* /etc/systemd/system/
 systemctl daemon-reload
@@ -73,5 +77,8 @@ systemctl start regular-maintenance.timer
 # which you can run in a loop where you 'docker exec' each one you want. You'll
 # also then need to update gravity once they're all added:
 #     docker exec pihole pihole -g
+
+apt-get autoclean
+apt-get autoremove -y
 
 printf 'All done!\n'

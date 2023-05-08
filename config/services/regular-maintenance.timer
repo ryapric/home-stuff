@@ -1,6 +1,5 @@
 [Unit]
 Description=Daily maintenance tasks for home-stuff services
-Requires=regular-maintenance.service
 
 [Timer]
 Unit=regular-maintenance.service
