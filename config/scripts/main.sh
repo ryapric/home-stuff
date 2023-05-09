@@ -31,16 +31,24 @@ apt-get install -y \
   make \
   net-tools \
   nmap \
+  tree \
   unzip \
-  zip
+  zip \
+  zsh
 
+printf 'Setting up ZShell...\n'
+[[ -d /tmp/oh-my-zsh ]] || git -C /tmp clone https://github.com/ohmyzsh/ohmyzsh.git oh-my-zsh
+sudo -u admin bash -c '[[ -d /home/admin/.oh-my-zsh ]] || bash /tmp/oh-my-zsh/tools/install.sh --unattended'
+[[ "${SHELL}" == "$(command -v zsh)" ]] || sudo chsh -s "$(command -v zsh)" admin
+
+this_repo_path="./repos/ryapric/home-stuff"
 git config --global pull.rebase false
-if [[ ! -d ./upstream-repo ]] ; then
+if [[ ! -d "${this_repo_path}" ]] ; then
   printf 'Cloning repo locally for reference later if needed...\n'
-  git clone https://github.com/ryapric/home-stuff.git ./upstream-repo
+  git clone https://github.com/ryapric/home-stuff.git "${this_repo_path}"
   chown -R "${user}":"${user}" /home/"${user}"
 else
-  git -C ./upstream-repo pull
+  git -C "${this_repo_path}" pull
 fi
 
 printf 'Installing Docker...\n'
