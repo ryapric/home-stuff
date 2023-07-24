@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /home/admin/config || exit 1
+cd /home/admin/home-stuff/config || exit 1
 
 # Tear down Docker Compose stack completely, and restart. Note that we're
 # backing up resolv.conf because otherwise DNS will go down once Pi-hole does

@@ -15,8 +15,8 @@ printf 'Uploading files to server...\n'
 scp \
   -o StrictHostKeyChecking=false \
   -r \
-  "${local_root}"/config \
-  "${host}":/home/admin/
+  "${local_root}" \
+  "${host}":/tmp/home-stuff
 
 printf 'Running main config script...\n'
-ssh "${host}" -- sudo bash /home/admin/config/scripts/main.sh "${platform}"
+ssh "${host}" -- sudo bash /tmp/home-stuff/config/scripts/main.sh "${platform}"

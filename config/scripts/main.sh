@@ -3,22 +3,22 @@ set -euo pipefail
 
 export platform="${1:-}"
 if [[ -z "${platform}" ]] ; then
-  printf 'ERROR: platform name (vagrant|aws|any) not provided as script arg\n' > /dev/stderr
+  printf '>>> ERROR: platform name (vagrant|aws|any) not provided as script arg\n' > /dev/stderr
   exit 1
 fi
 
 if [[ "${platform}" == 'vagrant' ]] ; then
   export user='vagrant'
-  cp -r /tmp/home-stuff/* /home/vagrant/
+  printf 'vagrant\nvagrant\n' | passwd vagrant
 else
   export user='admin'
 fi
 
+# Put files in the right place, and fix perms in case provisions got messy
+cp -r /tmp/home-stuff /home/"${user}"/home-stuff
 chown -R "${user}":"${user}" /home/"${user}"
 
-cd /home/"${user}" || exit 1
-
-printf 'Installing system utilities...\n'
+printf '>>> Installing system utilities...\n'
 apt-get update && apt-get full-upgrade -y
 apt-get install -y \
   apt-transport-https \
@@ -36,24 +36,19 @@ apt-get install -y \
   zip \
   zsh
 
-printf 'Setting up ZShell...\n'
+# src_root is where the equivalent root dir of the source repo lives on the
+# host, and cfg_dir is its config subdir
+export src_root="/home/${user}/home-stuff"
+export cfg_dir="${src_root}/config"
+
+printf '>>> Setting up ZShell...\n'
 [[ -d /tmp/oh-my-zsh ]] || git -C /tmp clone https://github.com/ohmyzsh/ohmyzsh.git oh-my-zsh
-sudo -u admin bash -c '[[ -d /home/admin/.oh-my-zsh ]] || bash /tmp/oh-my-zsh/tools/install.sh --unattended'
-[[ "${SHELL}" == "$(command -v zsh)" ]] || sudo chsh -s "$(command -v zsh)" admin
+sudo -u "${user}" bash -c "[[ -d /home/${user}/.oh-my-zsh ]] || bash /tmp/oh-my-zsh/tools/install.sh --unattended"
+[[ "${SHELL}" == "$(command -v zsh)" ]] || sudo chsh -s "$(command -v zsh)" "${user}"
 
-this_repo_path="./repos/ryapric/home-stuff"
-git config --global pull.rebase false
-if [[ ! -d "${this_repo_path}" ]] ; then
-  printf 'Cloning repo locally for reference later if needed...\n'
-  git clone https://github.com/ryapric/home-stuff.git "${this_repo_path}"
-  chown -R "${user}":"${user}" /home/"${user}"
-else
-  git -C "${this_repo_path}" pull
-fi
-
-printf 'Installing Docker...\n'
+printf '>>> Installing Docker...\n'
 curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/docker.gpg
-printf "deb https://download.docker.com/linux/debian %s stable\n" "$(lsb_release -cs)" > /etc/apt/sources.list.d/docker.list
+printf 'deb https://download.docker.com/linux/debian %s stable\n' "$(lsb_release -cs)" > /etc/apt/sources.list.d/docker.list
 apt-get update
 apt-get install -y \
   docker-ce \
@@ -62,19 +57,45 @@ apt-get install -y \
   docker-compose-plugin
 usermod -aG docker "${user}"
 
-cfgdir="/home/${user}/config"
-
-printf 'Bringing up services defined in docker-compose.yaml...\n'
-cmpfile="${cfgdir}/docker-compose.yaml"
+printf '>>> Bringing up services defined in docker-compose.yaml...\n'
+cmpfile="${cfg_dir}/docker-compose.yaml"
 docker compose -f "${cmpfile}" pull
 docker compose -f "${cmpfile}" up -d --wait
 docker system prune --volumes --force
 
-printf 'Installing cockpit...\n'
+printf '>>> Installing cockpit...\n'
 apt-get install -y cockpit
 
-printf 'Setting up systemd services...\n'
-cp -r "${cfgdir}"/services/* /etc/systemd/system/
+printf '>>> Setting up systemd services...\n'
+
+cat <<EOF > /etc/systemd/system/regular-maintenance.service
+[Unit]
+Description=Periodic maintenance tasks for home-stuff services
+Wants=regular-maintenance.timer
+
+[Service]
+ExecStart=${cfg_dir}/scripts/regular-maintenance.sh
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat <<EOF > /etc/systemd/system/regular-maintenance.timer
+[Unit]
+Description=Daily maintenance tasks for home-stuff services
+
+[Timer]
+Unit=regular-maintenance.service
+OnBootSec=30s
+OnCalendar=Sun *-*-* 04:*:*
+AccuracySec=1s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
 systemctl daemon-reload
 systemctl enable regular-maintenance.timer
 systemctl start regular-maintenance.timer
@@ -89,4 +110,4 @@ systemctl start regular-maintenance.timer
 apt-get autoclean
 apt-get autoremove -y
 
-printf 'All done!\n'
+printf '>>> All done!\n'
