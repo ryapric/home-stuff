@@ -25,12 +25,15 @@ apt-get install -y \
   ca-certificates \
   curl \
   git \
+  golang \
   gnupg2 \
   htop \
   lsb-release \
   make \
   net-tools \
   nmap \
+  rsync \
+  socat \
   tree \
   unzip \
   zip \
