@@ -32,6 +32,7 @@ apt-get install -y \
   make \
   net-tools \
   nmap \
+  rlwrap \
   rsync \
   socat \
   tree \
