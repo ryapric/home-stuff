@@ -28,7 +28,7 @@ Vagrant.configure("2") do |config|
 
     hs.vm.provision "shell",
       inline: <<-SCRIPT
-        bash /tmp/home-stuff/config/scripts/main.sh vagrant
+        bash /tmp/home-stuff/config/scripts/main.sh localhost
       SCRIPT
   end
 end

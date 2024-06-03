@@ -1,0 +1,56 @@
+---
+- name: 'Home server config'
+  hosts: 'all'
+
+  vars:
+    user: 'admin'
+
+  tasks:
+
+    - name: 'Install packages'
+      become: true
+      ansible.builtin.apt:
+        pkg:
+          - 'apt-transport-https'
+          - 'ca-certificates'
+          - 'cockpit'
+          - 'curl'
+          - 'git'
+          - 'golang'
+          - 'gnupg2'
+          - 'htop'
+          - 'lsb-release'
+          - 'make'
+          - 'net-tools'
+          - 'nmap'
+          - 'rlwrap'
+          - 'rsync'
+          - 'socat'
+          - 'tree'
+          - 'unzip'
+          - 'zip'
+          - 'zsh'
+        update_cache: true
+        autoclean: true
+        autoremove: true
+
+    - name: 'Add user'
+      become: true
+      ansible.builtin.user:
+        name: '{{ user }}'
+        create_home: true
+        shell: '/usr/bin/zsh'
+
+    - name: 'Install Oh My Zsh'
+      become: true
+      become_user: '{{ user }}'
+      ansible.builtin.shell:
+        cmd: 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
+        creates: '/home/{{ user }}/.oh-my-zsh'
+
+    - name: 'Install Docker'
+      ansible.builtin.include_role:
+        name: 'geerlingguy.docker'
+      vars:
+        docker_users:
+          - '{{ user }}'
