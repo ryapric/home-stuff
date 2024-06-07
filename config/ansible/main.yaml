@@ -4,6 +4,7 @@
 
   vars:
     user: 'admin'
+    src: '/home/{{ user }}/home-stuff'
 
   tasks:
 
@@ -33,6 +34,14 @@
         update_cache: true
         autoclean: true
         autoremove: true
+        state: 'latest'
+
+    - name: 'Add user config for sudoers file'
+      become: true
+      ansible.builtin.copy:
+        content: '{{ user }} ALL=(ALL) NOPASSWD:ALL'
+        dest: '/etc/sudoers.d/{{ user }}'
+        mode: '0600'
 
     - name: 'Add user'
       become: true
@@ -40,6 +49,9 @@
         name: '{{ user }}'
         create_home: true
         shell: '/usr/bin/zsh'
+        groups:
+          - sudo
+        append: true
 
     - name: 'Install Oh My Zsh'
       become: true
@@ -54,3 +66,104 @@
       vars:
         docker_users:
           - '{{ user }}'
+
+    # - name: 'Create source-code landing directory in user homedir'
+    #   become: true
+    #   become_user: '{{ user }}'
+    #   ansible.builtin.file:
+    #     name: '{{ src }}'
+    #     owner: '{{ user }}'
+    #     group: '{{ user }}'
+    #     mode: '0755'
+    #     state: 'directory'
+
+    # - name: 'Copy docker-compose.yaml'
+    #   become: true
+    #   become_user: '{{ user }}'
+    #   ansible.builtin.copy:
+    #     src: '../docker-compose.yaml'
+    #     dest: '{{ src }}/docker-compose.yaml'
+    #     owner: '{{ user }}'
+    #     group: '{{ user }}'
+    #     mode: 'preserve'
+
+    - name: 'Copy source code directory to host'
+      become: true
+      become_user: '{{ user }}'
+      ansible.builtin.copy:
+        src: '../../config'
+        dest: '{{ src }}'
+        owner: '{{ user }}'
+        group: '{{ user }}'
+        mode: 'preserve'
+
+    - name: 'Run Docker Compose stack'
+      become: true
+      become_user: '{{ user }}'
+      community.docker.docker_compose_v2:
+        project_src: '{{ src }}/config'
+        pull: 'always'
+        remove_orphans: true
+      register: docker_compose_output
+
+    - name: 'Wait for containers to fully start'
+      ansible.builtin.pause:
+        seconds: 1
+
+    # - name: 'Show Docker Compose output'
+    #   ansible.builtin.debug:
+    #     var: docker_compose_output
+
+    - name: 'Verify Docker Compose stack components are running'
+      ansible.builtin.assert:
+        that:
+          - '{{ item }}.State == "running"'
+        quiet: true
+      loop: '{{ docker_compose_output.containers }}'
+
+    - name: 'Add systemd service file for scheduled Playbook run'
+      become: true
+      ansible.builtin.copy:
+        dest: '/etc/systemd/system/regular-maintenance.service'
+        content: |
+          [Unit]
+          Description=Periodic maintenance tasks for home-stuff services
+          Wants=regular-maintenance.timer
+
+          [Service]
+          ExecStart={{ src }}/config/scripts/regular-maintenance.sh
+          Type=oneshot
+
+          [Install]
+          WantedBy=multi-user.target
+        owner: 'root'
+        group: 'root'
+        mode: '0644'
+
+    - name: 'Add systemd service timer for scheduled Playbook run'
+      become: true
+      ansible.builtin.copy:
+        dest: '/etc/systemd/system/regular-maintenance.timer'
+        content: |
+          [Unit]
+          Description=Periodic maintenance tasks for home-stuff services
+
+          [Timer]
+          Unit=regular-maintenance.service
+          OnBootSec=30s
+          OnCalendar=Sun *-*-* 04:*:*
+          AccuracySec=1s
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+        owner: 'root'
+        group: 'root'
+        mode: '0644'
+
+    - name: 'Enable systemd timer for scheduled Playbook run'
+      ansible.builtin.systemd_service:
+        name: 'regular-maintenance.timer'
+        enabled: true
+        daemon_reload: true
+        state: 'started'

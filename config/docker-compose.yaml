@@ -23,17 +23,17 @@ services:
     # - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
     restart: 'unless-stopped'
 
-  homeassistant:
-    container_name: 'homeassistant'
-    image: 'ghcr.io/home-assistant/home-assistant:stable'
-    volumes:
-    - 'homeassistant_config:/config'
-    - '/etc/localtime:/etc/localtime:ro'
-    restart: 'unless-stopped'
-    privileged: true
-    network_mode: 'host'
+  # homeassistant:
+  #   container_name: 'homeassistant'
+  #   image: 'ghcr.io/home-assistant/home-assistant:stable'
+  #   volumes:
+  #   - 'homeassistant_config:/config'
+  #   - '/etc/localtime:/etc/localtime:ro'
+  #   restart: 'unless-stopped'
+  #   privileged: true
+  #   network_mode: 'host'
 
 volumes:
   pihole_etc-pihole: {}
   pihole_etc-dnsmasq.d: {}
-  homeassistant_config: {}
+  # homeassistant_config: {}
