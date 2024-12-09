@@ -1,3 +1,5 @@
+SHELL := /usr/bin/env bash -euo pipefail
+
 provision:
 	@bash ./config/scripts/provision.sh
 

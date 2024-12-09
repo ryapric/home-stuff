@@ -5,8 +5,8 @@ if [[ -z "${1:-}" ]] ; then
   printf 'ERROR: you must supply a host as the first script arg. Exiting.\n' > /dev/stderr
   exit 1
 fi
+host="${1}"
 
-host="${1:-localhost}"
 ansible_flags="--inventory ${host},"
 if [[ "${host}" == 'localhost' || "${host}" == '127.0.0.1' ]] ; then
   ansible_flags="${ansible_flags} --connection local"
