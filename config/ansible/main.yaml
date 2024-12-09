@@ -116,7 +116,7 @@
     - name: "Verify Docker Compose stack components are running"
       ansible.builtin.assert:
         that:
-          - '{{ item }}.State == "running"'
+          - item.State == "running"
         quiet: true
       loop: "{{ docker_compose_output.containers }}"
 
