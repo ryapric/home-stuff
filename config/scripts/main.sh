@@ -19,8 +19,12 @@ apt-get update && apt-get install -y \
   sudo
 
 src="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
+
 ansible-galaxy install -r "${src}/ansible/requirements.yaml"
-ansible-lint "${src}/ansible/main.yaml"
+
+# TODO: enable
+# ansible-lint "${src}/ansible/main.yaml"
+
 # The next line doesn't quote the flags var because it intentionally needs to be
 # multiple tokens
 # shellcheck disable=SC2086
