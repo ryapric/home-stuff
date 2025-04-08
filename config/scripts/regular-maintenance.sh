@@ -19,4 +19,4 @@ bash /home/ryan/home-stuff/config/scripts/main.sh localhost
 
 mv /etc/resolv.conf{.bak,}
 
-docker exec pihole sh -c 'pihole -g'
+docker exec pihole sh -c 'pihole -g -r recreate'

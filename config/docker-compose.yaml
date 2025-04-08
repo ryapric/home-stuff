@@ -14,7 +14,7 @@ services:
       TZ: 'America/Chicago'
       FTLCONF_dns_upstreams: '9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9' # Quad9 IPs
       FTLCONF_webserver_api_password: 'admin'
-      FTLCONF_dnsmasq_listeningMode: 'all' # to make publicly-accessible
+      FTLCONF_dns_listeningMode: 'all' # to make publicly-accessible
     volumes:
       - 'pihole_etc-pihole:/etc/pihole'
     #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
