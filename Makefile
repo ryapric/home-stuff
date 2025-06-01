@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash -euo pipefail
 
-provision:
-	@bash ./config/scripts/provision.sh
+run:
+	@bash ./config/scripts/main.sh $(host)
 
 test-local:
 	@vagrant up --no-provision
