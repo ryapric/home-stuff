@@ -3,7 +3,7 @@ services:
   # More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
   pihole:
     container_name: 'pihole'
-    image: 'pihole/pihole:2025.04.0'
+    image: 'pihole/pihole:2025.05.1'
     # For DHCP it is recommended to remove these ports and instead add: network_mode: "host"
     ports:
       - '53:53/tcp'
