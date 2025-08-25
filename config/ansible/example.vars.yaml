@@ -1,0 +1,5 @@
+# Rename this to just "vars.yaml"
+
+wireguard_endpoint: "some.ip.or.dns:with_port"
+wireguard_external_interface: "eth0-or-something"
+pihole_addr: "pihole_ip"

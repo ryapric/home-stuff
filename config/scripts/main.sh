@@ -12,7 +12,7 @@ if [[ "${host}" == 'localhost' || "${host}" == '127.0.0.1' ]] ; then
   ansible_flags="${ansible_flags} --connection local"
 fi
 
-apt-get update && apt-get install -y \
+sudo apt-get update && sudo apt-get install -y \
   ansible-core \
   ansible-lint \
   make \

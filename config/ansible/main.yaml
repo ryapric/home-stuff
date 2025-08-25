@@ -4,9 +4,17 @@
 
   vars:
     user: "ryan"
-    src: "/home/{{ user }}/home-stuff"
+    homedir: "/home/{{ user }}"
+    src: "{{ homedir }}/home-stuff"
 
   tasks:
+    - name: "Load external vars"
+      ansible.builtin.include_vars:
+        file: "vars.yaml"
+
+    ################################################################################################
+    ### Core requirements ##########################################################################
+    ################################################################################################
     - name: "Install packages"
       become: true
       ansible.builtin.apt:
@@ -19,15 +27,21 @@
           - "golang"
           - "gnupg2"
           - "htop"
+          - "iptables"
           - "lsb-release"
           - "make"
           - "net-tools"
           - "nmap"
+          - "qrencode"
+          - "resolvconf"
+          - "ripgrep"
           - "rlwrap"
           - "rsync"
           - "socat"
           - "tree"
+          - "ufw"
           - "unzip"
+          - "wireguard"
           - "zip"
           - "zsh"
         update_cache: true
@@ -52,6 +66,9 @@
           - sudo
         append: true
 
+    ################################################################################################
+    ### Shell stuff ################################################################################
+    ################################################################################################
     - name: "Install Oh My Zsh"
       become: true
       become_user: "{{ user }}"
@@ -59,32 +76,15 @@
         cmd: 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
         creates: "/home/{{ user }}/.oh-my-zsh"
 
+    ################################################################################################
+    ### Containerized services #####################################################################
+    ################################################################################################
     - name: "Install Docker"
       ansible.builtin.include_role:
         name: "geerlingguy.docker"
       vars:
         docker_users:
           - "{{ user }}"
-
-    # - name: 'Create source-code landing directory in user homedir'
-    #   become: true
-    #   become_user: '{{ user }}'
-    #   ansible.builtin.file:
-    #     name: '{{ src }}'
-    #     owner: '{{ user }}'
-    #     group: '{{ user }}'
-    #     mode: '0755'
-    #     state: 'directory'
-
-    # - name: 'Copy docker-compose.yaml'
-    #   become: true
-    #   become_user: '{{ user }}'
-    #   ansible.builtin.copy:
-    #     src: '../docker-compose.yaml'
-    #     dest: '{{ src }}/docker-compose.yaml'
-    #     owner: '{{ user }}'
-    #     group: '{{ user }}'
-    #     mode: 'preserve'
 
     - name: "Copy source code directory to host"
       become: true
@@ -100,18 +100,19 @@
       become: true
       become_user: "{{ user }}"
       community.docker.docker_compose_v2:
+        state: "present"
         project_src: "{{ src }}/config"
         pull: "always"
         remove_orphans: true
+        recreate: "always"
       register: docker_compose_output
 
-    - name: "Wait for containers to fully start"
+    # We don't use the 'wait' key above because some containers might fail as expected (e.g. they're
+    # work-in-progress), so give some time here instead to let the ones we know should be working
+    # start successfully
+    - name: "Give containers a chance to fully start"
       ansible.builtin.pause:
-        seconds: 1
-
-    # - name: 'Show Docker Compose output'
-    #   ansible.builtin.debug:
-    #     var: docker_compose_output
+        seconds: 3
 
     - name: "Verify Docker Compose stack components are running"
       ansible.builtin.assert:
@@ -120,6 +121,115 @@
         quiet: true
       loop: "{{ docker_compose_output.containers }}"
 
+    ################################################################################################
+    ### Wireguard ##################################################################################
+    ################################################################################################
+
+    - name: "Create WireGuard keys"
+      become: true
+      ansible.builtin.shell:
+        cmd: |
+          mkdir -p /etc/wireguard/keys
+          umask 077
+
+          # Server
+          wg genkey > /etc/wireguard/keys/server.priv
+          wg pubkey < /etc/wireguard/keys/server.priv > /etc/wireguard/keys/server.pub
+
+          # Client
+          wg genkey > /etc/wireguard/keys/client.priv
+          wg pubkey < /etc/wireguard/keys/client.priv > /etc/wireguard/keys/client.pub
+
+          chmod 0600 /etc/wireguard/*
+        creates: "/etc/wireguard/keys/server.priv"
+
+    - name: "Get contents of WireGuard keys for later interpolation"
+      become: true
+      ansible.builtin.shell:
+        executable: "/usr/bin/bash"
+        cmd: |
+          printf 'server_private_key:%s\n' "$(cat /etc/wireguard/keys/server.priv)"
+          printf 'server_public_key:%s\n' "$(cat /etc/wireguard/keys/server.pub)"
+          printf 'client_private_key:%s\n' "$(cat /etc/wireguard/keys/client.priv)"
+          printf 'client_public_key:%s\n' "$(cat /etc/wireguard/keys/client.pub)"
+      register: "wg_keys_lines"
+
+    - name: "Store key output as dict for easier reading/use"
+      ansible.builtin.set_fact:
+        wg_keys: "{{ dict(wg_keys_lines.stdout_lines | map('split', ':')) }}"
+
+    - name: "Create WireGuard server config file"
+      become: true
+      ansible.builtin.copy:
+        dest: "/etc/wireguard/wg0.conf"
+        content: |
+          [Interface]
+          Address = 10.8.0.1/24
+          ListenPort = 51820
+          PrivateKey = {{ wg_keys['server_private_key'] }}
+          PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ wireguard_external_interface }} -j MASQUERADE
+          PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ wireguard_external_interface }} -j MASQUERADE
+
+          [Peer]
+          PublicKey = {{ wg_keys['client_public_key'] }}
+          AllowedIPs = 10.8.0.2/32
+        owner: "root"
+        group: "root"
+        mode: "0600"
+
+    - name: "Create WireGuard client config file(s)"
+      become: true
+      ansible.builtin.copy:
+        dest: "/etc/wireguard/wg0_client.conf"
+        content: |
+          [Interface]
+          Address = 10.8.0.2/24
+          PrivateKey = {{ wg_keys['client_private_key'] }}
+          DNS = {{ pihole_addr }}
+
+          [Peer]
+          PublicKey = {{ wg_keys['server_public_key'] }}
+          Endpoint = {{ wireguard_endpoint }}
+          AllowedIPs = 0.0.0.0/0, ::/0
+          PersistentKeepalive = 25
+        owner: "root"
+        group: "root"
+        mode: "0600"
+
+    - name: "Configure packet-forwarding"
+      become: true
+      ansible.builtin.copy:
+        dest: "/etc/sysctl.conf"
+        content: |
+          net.ipv4.ip_forward=1
+          net.ipv6.conf.all.forwarding=1
+        owner: "root"
+        group: "root"
+        mode: "0600"
+
+    - name: "Apply sysctl changes"
+      become: true
+      ansible.builtin.command:
+        cmd: "sysctl -p"
+
+    - name: "Enable WireGuard service"
+      become: true
+      ansible.builtin.systemd_service:
+        name: "wg-quick@wg0"
+        enabled: true
+        daemon_reload: true
+        state: "started"
+
+    - name: "Save file containing WireGuard client QR code"
+      become: true
+      ansible.builtin.shell:
+        cmd: |
+          qrencode --type ANSIUTF8 --read /etc/wireguard/wg0_client.conf > {{ homedir }}/wg_client.qr
+          chown {{ user }}:{{ user }} {{ homedir }}/wg_client.qr
+
+    ################################################################################################
+    ### Scheduled services #########################################################################
+    ################################################################################################
     - name: "Add systemd service file for scheduled Playbook run"
       become: true
       ansible.builtin.copy:
