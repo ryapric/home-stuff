@@ -32,18 +32,19 @@ services:
     # cap_add:
     #   - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
 
-  # homeassistant:
-  #   container_name: "homeassistant"
-  #   image: "ghcr.io/home-assistant/home-assistant:stable"
-  #   restart: "always"
-  #   volumes:
-  #     - "homeassistant_config:/config"
-  #     - "/etc/localtime:/etc/localtime:ro"
-  #   privileged: true
-  #   network_mode: "host"
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    restart: "always"
+    volumes:
+      - homeassistant_config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+    privileged: true
+    network_mode: host
 
 volumes:
   pihole:
     name: "pihole"
-  # homeassistant_config:
-  #   name: "homeassistant_config"
+  homeassistant_config:
+    name: "homeassistant_config"
