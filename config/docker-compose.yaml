@@ -1,39 +1,51 @@
 services:
 
+  # TODO: revisit this, not working
+  reverse_proxy:
+    container_name: "reverse_proxy"
+    image: "docker.io/library/caddy:2.10.0-alpine"
+    restart: "always"
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+    volumes:
+      - "./Caddyfile:/etc/caddy/Caddyfile:ro"
+
   # More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
   pihole:
-    container_name: 'pihole'
-    image: 'pihole/pihole:latest'
+    container_name: "pihole"
+    image: "ghcr.io/pi-hole/pihole:2025.08.0"
+    restart: "always"
     # For DHCP it is recommended to remove these ports and instead add: network_mode: "host"
     ports:
-    - '53:53/tcp'
-    - '53:53/udp'
-    # - '67:67/udp' # Only required if you are using Pi-hole as your DHCP server
-    - '80:80/tcp'
+      - "53:53/tcp"
+      - "53:53/udp"
+      # - "67:67/udp" # Only required if you are using Pi-hole as your DHCP server
+      - "8080:80/tcp"
     environment:
-      DNSMASQ_LISTENING: 'all' # to make publicly-accessible
-      PIHOLE_DNS_: '9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9' # Quad9 IPs
-      TZ: 'America/Chicago'
-      WEBPASSWORD: 'admin'
+      TZ: "America/Chicago"
+      FTLCONF_dns_upstreams: "9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9" # Quad9 IPs
+      FTLCONF_webserver_api_password: "admin"
+      FTLCONF_dns_listeningMode: "all" # to make publicly-accessible
     volumes:
-    - 'pihole_etc-pihole:/etc/pihole'
-    - 'pihole_etc-dnsmasq.d:/etc/dnsmasq.d'
-    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+      - "pihole:/etc/pihole"
+    # https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
     # cap_add:
-    # - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
-    restart: 'unless-stopped'
+    #   - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
 
   homeassistant:
-    container_name: 'homeassistant'
-    image: 'ghcr.io/home-assistant/home-assistant:stable'
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    restart: "always"
     volumes:
-    - 'homeassistant_config:/config'
-    - '/etc/localtime:/etc/localtime:ro'
-    restart: 'unless-stopped'
+      - homeassistant_config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
     privileged: true
-    network_mode: 'host'
+    network_mode: host
 
 volumes:
-  pihole_etc-pihole: {}
-  pihole_etc-dnsmasq.d: {}
-  homeassistant_config: {}
+  pihole:
+    name: "pihole"
+  homeassistant_config:
+    name: "homeassistant_config"
