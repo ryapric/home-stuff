@@ -79,12 +79,15 @@
     ################################################################################################
     ### Containerized services #####################################################################
     ################################################################################################
-    - name: "Install Docker"
-      ansible.builtin.include_role:
-        name: "geerlingguy.docker"
-      vars:
-        docker_users:
-          - "{{ user }}"
+    - name: "Install Docker via root-user wrapper"
+      become: true
+      block:
+        - name: "Install Docker"
+          ansible.builtin.include_role:
+            name: "geerlingguy.docker"
+          vars:
+            docker_users:
+              - "{{ user }}"
 
     - name: "Copy source code directory to host"
       become: true

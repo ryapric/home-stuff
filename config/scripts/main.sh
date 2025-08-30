@@ -12,20 +12,14 @@ if [[ "${host}" == 'localhost' || "${host}" == '127.0.0.1' ]] ; then
   ansible_flags="${ansible_flags} --connection local"
 fi
 
-sudo apt-get update && sudo apt-get install -y \
-  ansible-core \
-  ansible-lint \
-  make \
-  sudo
+root="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
 
-src="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
-
-ansible-galaxy install -r "${src}/ansible/requirements.yaml"
+uv run ansible-galaxy install -r "${root}/ansible/requirements.yaml"
 
 # TODO: enable
-# ansible-lint "${src}/ansible/main.yaml"
+# uv run ansible-lint "${root}/ansible/main.yaml"
 
 # The next line doesn't quote the flags var because it intentionally needs to be
 # multiple tokens
 # shellcheck disable=SC2086
-ansible-playbook ${ansible_flags} "${src}/ansible/main.yaml"
+uv run ansible-playbook ${ansible_flags} "${root}/ansible/main.yaml"

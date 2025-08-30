@@ -24,14 +24,17 @@ services:
       - "8080:80/tcp"
     environment:
       TZ: "America/Chicago"
-      FTLCONF_dns_upstreams: "9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9" # Quad9 IPs
+      FTLCONF_dns_upstreams: "9.9.9.9;149.112.112.112" # Quad9 IPs; note no IPv6 because I was seeing errors
       FTLCONF_webserver_api_password: "admin"
       FTLCONF_dns_listeningMode: "all" # to make publicly-accessible
+      FTLCONF_webserver_session_timeout: "2592000"
     volumes:
       - "pihole:/etc/pihole"
     # https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
-    # cap_add:
-    #   - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
+    cap_add:
+      # - "NET_ADMIN" # Required if you are using Pi-hole as your DHCP server, else not needed
+      - "SYS_NICE"
+      - "SYS_TIME"
 
   homeassistant:
     container_name: homeassistant
