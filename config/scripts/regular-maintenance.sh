@@ -13,7 +13,9 @@ printf 'nameserver 9.9.9.9\n' > /etc/resolv.conf
 # nuclear here
 docker compose down
 docker system prune --force
-docker volume ls --format '{{ .Name }}' | grep pihole | xargs -I{} docker volume rm {}
+if docker volume ls --format '{{ .Name }}' | grep pihole ; then
+  docker volume ls --format '{{ .Name }}' | grep pihole | xargs -I{} docker volume rm {}
+fi
 
 bash /home/ryan/home-stuff/config/scripts/main.sh localhost
 
