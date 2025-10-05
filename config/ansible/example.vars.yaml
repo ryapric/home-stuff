@@ -1,5 +1,11 @@
 # Rename this to just "vars.yaml"
 
+# Names of WireGuard clients, of which a corresponding named keypair will be created
+wireguard_clients:
+  - "phone"
+  - "travel-router"
+  - "someone-elses-phone"
+  - "etc"
 wireguard_endpoint: "some.ip.or.dns:with_port"
 wireguard_external_interface: "eth0-or-something"
-pihole_addr: "pihole_ip"
+pihole_addr: "some.ip.or.dns"

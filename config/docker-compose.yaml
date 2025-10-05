@@ -1,15 +1,14 @@
 services:
-
-  # TODO: revisit this, not working
-  reverse_proxy:
-    container_name: "reverse_proxy"
-    image: "docker.io/library/caddy:2.10.0-alpine"
-    restart: "always"
-    ports:
-      - "80:80/tcp"
-      - "443:443/tcp"
-    volumes:
-      - "./Caddyfile:/etc/caddy/Caddyfile:ro"
+  # # TODO: revisit this, not working
+  # reverse_proxy:
+  #   container_name: "reverse_proxy"
+  #   image: "docker.io/library/caddy:2.10.0-alpine"
+  #   restart: "always"
+  #   ports:
+  #     - "80:80/tcp"
+  #     - "443:443/tcp"
+  #   volumes:
+  #     - "./Caddyfile:/etc/caddy/Caddyfile:ro"
 
   # More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
   pihole:
@@ -36,19 +35,19 @@ services:
       - "SYS_NICE"
       - "SYS_TIME"
 
-  homeassistant:
-    container_name: homeassistant
-    image: "ghcr.io/home-assistant/home-assistant:stable"
-    restart: "always"
-    volumes:
-      - homeassistant_config:/config
-      - /etc/localtime:/etc/localtime:ro
-      - /run/dbus:/run/dbus:ro
-    privileged: true
-    network_mode: host
+  # homeassistant:
+  #   container_name: homeassistant
+  #   image: "ghcr.io/home-assistant/home-assistant:stable"
+  #   restart: "always"
+  #   volumes:
+  #     - homeassistant_config:/config
+  #     - /etc/localtime:/etc/localtime:ro
+  #     - /run/dbus:/run/dbus:ro
+  #   privileged: true
+  #   network_mode: host
 
 volumes:
   pihole:
     name: "pihole"
-  homeassistant_config:
-    name: "homeassistant_config"
+  # homeassistant_config:
+  #   name: "homeassistant_config"

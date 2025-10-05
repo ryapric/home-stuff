@@ -136,15 +136,23 @@
           umask 077
 
           # Server
-          wg genkey > /etc/wireguard/keys/server.priv
-          wg pubkey < /etc/wireguard/keys/server.priv > /etc/wireguard/keys/server.pub
+          if [ ! -f /etc/wireguard/keys/server.priv ] ; then
+            wg genkey > /etc/wireguard/keys/server.priv
+            wg pubkey < /etc/wireguard/keys/server.priv > /etc/wireguard/keys/server.pub
+          fi
 
-          # Client
-          wg genkey > /etc/wireguard/keys/client.priv
-          wg pubkey < /etc/wireguard/keys/client.priv > /etc/wireguard/keys/client.pub
+          # Clients
+          {% for client in wireguard_clients %}
+          if [ ! -f /etc/wireguard/keys/client_{{ client }}.priv ] ; then
+            wg genkey > /etc/wireguard/keys/client_{{ client }}.priv
+            wg pubkey < /etc/wireguard/keys/client_{{ client }}.priv > /etc/wireguard/keys/client_{{ client }}.pub
+          fi
+          {% endfor %}
 
-          chmod 0600 /etc/wireguard/*
-        creates: "/etc/wireguard/keys/server.priv"
+          chmod -R 0600 /etc/wireguard/*
+
+          touch /etc/wireguard/keys/ansible_made_this
+        creates: "/etc/wireguard/keys/ansible_made_this"
 
     - name: "Get contents of WireGuard keys for later interpolation"
       become: true
@@ -153,8 +161,10 @@
         cmd: |
           printf 'server_private_key:%s\n' "$(cat /etc/wireguard/keys/server.priv)"
           printf 'server_public_key:%s\n' "$(cat /etc/wireguard/keys/server.pub)"
-          printf 'client_private_key:%s\n' "$(cat /etc/wireguard/keys/client.priv)"
-          printf 'client_public_key:%s\n' "$(cat /etc/wireguard/keys/client.pub)"
+          {% for client in wireguard_clients %}
+          printf 'client_private_key_{{ client }}:%s\n' "$(cat /etc/wireguard/keys/client_{{ client }}.priv)"
+          printf 'client_public_key_{{ client }}:%s\n' "$(cat /etc/wireguard/keys/client_{{ client }}.pub)"
+          {% endfor %}
       register: "wg_keys_lines"
 
     - name: "Store key output as dict for easier reading/use"
@@ -173,21 +183,25 @@
           PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ wireguard_external_interface }} -j MASQUERADE
           PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ wireguard_external_interface }} -j MASQUERADE
 
+          {% for client in wireguard_clients %}
+          # {{ client }}
           [Peer]
-          PublicKey = {{ wg_keys['client_public_key'] }}
-          AllowedIPs = 10.8.0.2/32
+          PublicKey = {{ wg_keys['client_public_key_' + client] }}
+          AllowedIPs = 10.8.0.{{ loop.index0 + 2 }}/32
+
+          {% endfor %}
         owner: "root"
         group: "root"
         mode: "0600"
 
-    - name: "Create WireGuard client config file(s)"
+    - name: "Create WireGuard client config files"
       become: true
       ansible.builtin.copy:
-        dest: "/etc/wireguard/wg0_client.conf"
+        dest: "/etc/wireguard/wg0_client_{{ item }}.conf"
         content: |
           [Interface]
-          Address = 10.8.0.2/24
-          PrivateKey = {{ wg_keys['client_private_key'] }}
+          Address = 10.8.0.{{ ansible_loop.index0 + 2 }}/24
+          PrivateKey = {{ wg_keys['client_private_key_' + item] }}
           DNS = {{ pihole_addr }}
 
           [Peer]
@@ -198,6 +212,9 @@
         owner: "root"
         group: "root"
         mode: "0600"
+      loop: "{{ wireguard_clients }}"
+      loop_control:
+        extended: true
 
     - name: "Configure packet-forwarding"
       become: true
@@ -223,12 +240,14 @@
         daemon_reload: true
         state: "started"
 
-    - name: "Save file containing WireGuard client QR code"
+    - name: "Save files containing WireGuard client QR codes"
       become: true
       ansible.builtin.shell:
         cmd: |
-          qrencode --type ANSIUTF8 --read /etc/wireguard/wg0_client.conf > {{ homedir }}/wg_client.qr
-          chown {{ user }}:{{ user }} {{ homedir }}/wg_client.qr
+          mkdir -p /etc/wireguard/qr
+          qrencode --type ANSIUTF8 --read /etc/wireguard/wg0_client_{{ item }}.conf > /etc/wireguard/qr/{{ item }}.qr
+        creates: "/etc/wireguard/qr/{{ item }}.qr"
+      loop: "{{ wireguard_clients }}"
 
     ################################################################################################
     ### Scheduled services #########################################################################
