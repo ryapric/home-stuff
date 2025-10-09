@@ -7,5 +7,5 @@ wireguard_clients:
   - "someone-elses-phone"
   - "etc"
 wireguard_endpoint: "some.ip.or.dns:with_port"
-wireguard_external_interface: "eth0-or-something"
+wireguard_external_interface: "eth0-or-enp1s0-or-something"
 pihole_addr: "some.ip.or.dns"

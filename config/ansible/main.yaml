@@ -180,8 +180,17 @@
           Address = 10.8.0.1/24
           ListenPort = 51820
           PrivateKey = {{ wg_keys['server_private_key'] }}
-          PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ wireguard_external_interface }} -j MASQUERADE
-          PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ wireguard_external_interface }} -j MASQUERADE
+          # NOTE: one time, I had to go in and add more of these PostUp/Down commands because
+          # iptables suddenly stopped letting WireGuard forward peer traffic. If your client can
+          # resolve DNS, but can't route, look here first.
+          PostUp   = iptables -A FORWARD -i wg0 -j ACCEPT
+          PostUp   = iptables -A FORWARD -i {{ wireguard_external_interface }} -o wg0 -j ACCEPT
+          PostUp   = iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+          PostUp   = iptables -t nat -A POSTROUTING -o {{ wireguard_external_interface }} -j MASQUERADE
+          PostDown = iptables -D FORWARD -i wg0 -j ACCEPT
+          PostDown = iptables -D FORWARD -i {{ wireguard_external_interface }} -o wg0 -j ACCEPT
+          PostDown = iptables -D FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+          PostDown = iptables -t nat -D POSTROUTING -o {{ wireguard_external_interface }} -j MASQUERADE
 
           {% for client in wireguard_clients %}
           # {{ client }}
@@ -200,7 +209,7 @@
         dest: "/etc/wireguard/wg0_client_{{ item }}.conf"
         content: |
           [Interface]
-          Address = 10.8.0.{{ ansible_loop.index0 + 2 }}/24
+          Address = 10.8.0.{{ ansible_loop.index0 + 2 }}/32
           PrivateKey = {{ wg_keys['client_private_key_' + item] }}
           DNS = {{ pihole_addr }}
 
@@ -221,7 +230,9 @@
       ansible.builtin.copy:
         dest: "/etc/sysctl.conf"
         content: |
+          # NOTE: I don't know which is right between these two IPv4 rules, so I put both
           net.ipv4.ip_forward=1
+          net.ipv4.conf.all.forwarding=1
           net.ipv6.conf.all.forwarding=1
         owner: "root"
         group: "root"
